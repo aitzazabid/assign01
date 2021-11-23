@@ -47,3 +47,9 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    my_email = models.CharField(max_length=256, default="", blank=True, null=True)
+    my_name = models.CharField(max_length=256, default="")
