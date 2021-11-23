@@ -6,8 +6,6 @@ from rest_framework.response import Response
 from users.models import User
 from django.contrib.sessions.models import Session
 from django.utils import timezone
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 
 # Create your views here.
 
@@ -65,8 +63,6 @@ class GetAuthUser(viewsets.ModelViewSet):
 class RecordsView(viewsets.ModelViewSet):
     queryset = Records.objects.all()
     serializer_class = RecordSerializer
-    # authentication_classes = [SessionAuthentication, BasicAuthentication]
-    # permission_classes = [IsAuthenticated]
 
     def GetData(self, request):
         data = self.request.GET
