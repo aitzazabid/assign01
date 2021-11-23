@@ -1,12 +1,13 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from users.models import UserProfile
-from users.serializers import ProfileSerializer, UserSerializer
+from users.models import UserProfile, Records
+from users.serializers import ProfileSerializer, UserSerializer, RecordSerializer
 from rest_framework.response import Response
 from users.models import User
 from django.contrib.sessions.models import Session
 from django.utils import timezone
-
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 
 # Create your views here.
 
@@ -59,3 +60,76 @@ class GetAuthUser(viewsets.ModelViewSet):
         if serializer.is_valid():
             self.perform_update(serializer)
         return Response(serializer.data)
+
+
+class RecordsView(viewsets.ModelViewSet):
+    queryset = Records.objects.all()
+    serializer_class = RecordSerializer
+    # authentication_classes = [SessionAuthentication, BasicAuthentication]
+    # permission_classes = [IsAuthenticated]
+
+    def GetData(self, request):
+        data = self.request.GET
+        user_id1 = data.get('id')
+        request.data['user'] = user_id1
+        user_check = UserProfile.objects.filter(user_id=user_id1)
+        if user_check:
+            recordData = Records.objects.values()
+            data = {}
+            data = recordData
+            return Response(data)
+
+    def create(self, request, *args, **kwargs):
+        data = self.request.GET
+        user_id1 = data.get('id')
+        request.data['user'] = user_id1
+        user_check = UserProfile.objects.filter(user_id=user_id1)
+        if user_check:
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer._errors)
+        return Response({
+            "success": False,
+            "message": "User does not exist"
+        })
+
+    def update(self, request, *args, **kwargs):
+        data = self.request.GET
+        user_id1 = data.get('id')
+        user_check = UserProfile.objects.filter(user_id=user_id1)
+        if user_check:
+            partial = True
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            if serializer.is_valid():
+                self.perform_update(serializer)
+            return Response(serializer.data)
+        return Response({
+            "success": False,
+            "message": "User does not exist"
+        })
+
+    def GetUserRecordsItems(self, request):
+        data = self.request.GET
+        user_id1 = data.get('id')
+        user_check = UserProfile.objects.filter(user_id=user_id1)
+        if user_check:
+            user2 = Records.objects.filter(user_id=user_id1)
+            if user2:
+                users = Records.objects.values()
+                users = users.filter(user_id=user_id1)
+                data = {}
+                data = users
+                return Response(data)
+            else:
+                return Response({
+                    "success": False,
+                    "message": "User does not exist"
+                })
+        else:
+            return Response({
+                "success": False,
+                "message": "User does not exist"
+            })

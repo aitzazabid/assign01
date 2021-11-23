@@ -53,3 +53,9 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     my_email = models.CharField(max_length=256, default="", blank=True, null=True)
     my_name = models.CharField(max_length=256, default="")
+
+
+class Records(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='RecordUser')
+    item_name = models.CharField(max_length=50, blank=True, null=True)
+    item_category = models.CharField(max_length=50, blank=True, null=True)

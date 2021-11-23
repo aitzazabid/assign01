@@ -16,6 +16,18 @@ urlpatterns = [
     path("getUsers/<str:pk>/", views.GetAuthUser.as_view({
         "put": "update",
     })),
+    path("Getrecord", views.RecordsView.as_view({
+        "get": "GetData",
+    })),
+    path("Addrecord", views.RecordsView.as_view({
+        "post": "create",
+    })),
+    path("record/<str:pk>/", views.RecordsView.as_view({
+        "put": "update",
+    })),
+    path("GetUserRecordsItems", views.RecordsView.as_view({
+        "get": "GetUserRecordsItems",
+    })),
 ]
 
 urlpatterns += router.urls
