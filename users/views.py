@@ -4,8 +4,7 @@ from users.models import UserProfile, Records
 from users.serializers import ProfileSerializer, UserSerializer, RecordSerializer
 from rest_framework.response import Response
 from users.models import User
-from django.contrib.sessions.models import Session
-from django.utils import timezone
+
 
 # Create your views here.
 
@@ -38,17 +37,10 @@ class GetAuthUser(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-    def OnlyAuthUser(self, request):
-        sessions = Session.objects.filter(expire_date__gte=timezone.now())
-        uid_list = []
-        for session in sessions:
-            data = session.get_decoded()
-            uid_list.append(data.get('_auth_user_id', None))
-        UserData = User.objects.filter(id__in=uid_list).first()
+    def OnlyAuthUsers(self, request):
         users = User.objects.values()
-        users = users.filter(id=UserData.id).first()
-        data = {}
-        data = users
+        user = users.filter(is_superuser__in=((True,)))
+        data = user
         return Response(data)
 
     def update(self, request, *args, **kwargs):
@@ -67,13 +59,18 @@ class RecordsView(viewsets.ModelViewSet):
     def GetData(self, request):
         data = self.request.GET
         user_id1 = data.get('id')
-        request.data['user'] = user_id1
-        user_check = UserProfile.objects.filter(user_id=user_id1)
-        if user_check:
-            recordData = Records.objects.values()
-            data = {}
-            data = recordData
-            return Response(data)
+        if user_id1:
+            request.data['user'] = user_id1
+            user_check = UserProfile.objects.filter(user_id=user_id1)
+            if user_check:
+                recordData = Records.objects.values()
+                data = recordData
+                return Response(data)
+        else:
+            return Response({
+                "success": False,
+                "message": "You need to enter user id"
+            })
 
     def create(self, request, *args, **kwargs):
         data = self.request.GET
@@ -116,7 +113,6 @@ class RecordsView(viewsets.ModelViewSet):
             if user2:
                 users = Records.objects.values()
                 users = users.filter(user_id=user_id1)
-                data = {}
                 data = users
                 return Response(data)
             else:

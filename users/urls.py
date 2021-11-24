@@ -6,12 +6,13 @@ from users import views
 router = DefaultRouter(trailing_slash=False)
 
 router.register(r'getUser', GetUser)
+router.register(r'getAllUser', views.GetAuthUser)
 
 urlpatterns = router.urls
 
 urlpatterns = [
     path("getOnlyAuthUser", views.GetAuthUser.as_view({
-        "get": "OnlyAuthUser",
+        "get": "OnlyAuthUsers",
     })),
     path("getUsers/<str:pk>/", views.GetAuthUser.as_view({
         "put": "update",
