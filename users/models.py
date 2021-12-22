@@ -52,10 +52,49 @@ class User(AbstractUser):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     my_email = models.CharField(max_length=256, default="", blank=True, null=True)
-    my_name = models.CharField(max_length=256, default="")
+    my_name = models.CharField(max_length=256)
+    country = models.CharField(max_length=256, null=True, blank=True)
+    address = models.CharField(max_length=256, null=True, blank=True)
+    first_name = models.CharField(max_length=256)
+    last_name = models.CharField(max_length=256)
+    user_mobile_number = models.IntegerField(default=0, null=True, blank=True)
 
 
 class Records(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='RecordUser')
     item_name = models.CharField(max_length=50, blank=True, null=True)
     item_category = models.CharField(max_length=50, blank=True, null=True)
+
+
+class Company(models.Model):
+    ROLE_CHOICES = (
+        ('ACTIVE', 'active'),
+        ('INACTIVE', 'inactive'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='company_user')
+    user_list = models.ManyToManyField(User, null=True, blank=True)
+    company_name = models.CharField(max_length=256)
+    country = models.CharField(max_length=256, null=True, blank=True)
+    address = models.CharField(max_length=256, null=True, blank=True)
+    company_status = models.CharField(max_length=256, choices=ROLE_CHOICES, null=True, blank=True)
+    number_of_employees = models.IntegerField()
+
+
+class Products(models.Model):
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='product_company')
+    product_name = models.CharField(max_length=256)
+    price = models.IntegerField()
+    description = models.CharField(max_length=256, null=True, blank=True)
+
+
+class RoleModel(models.Model):
+    ROLE_CHOICES = (
+        ('ADMIN', 'admin'),
+        ('DIRECTOR', 'director'),
+        ('EDITOR', 'editor'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='role_profile')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='role_company')
+    identity = models.CharField(max_length=256, choices=ROLE_CHOICES)

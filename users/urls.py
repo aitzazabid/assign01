@@ -11,6 +11,7 @@ router.register(r'getAllUser', views.GetAuthUser)
 urlpatterns = router.urls
 
 urlpatterns = [
+    path('login/', views.Login.as_view(), name='log_in'),
     path("getOnlyAuthUser", views.GetAuthUser.as_view({
         "get": "OnlyAuthUsers",
     })),
@@ -28,6 +29,24 @@ urlpatterns = [
     })),
     path("GetUserRecordsItems", views.RecordsView.as_view({
         "get": "GetUserRecordsItems",
+    })),
+    path("add_company/", views.AddCompany.as_view({
+        "post": "create",
+    })),
+    path("get_company/", views.AddCompany.as_view({
+        "get": "list",
+    })),
+    path("add_product/", views.AddProducts.as_view({
+        "post": "create",
+    })),
+    path("get_product/", views.AddProducts.as_view({
+        "get": "list",
+    })),
+    path("update_product/<str:pk>/", views.AddProducts.as_view({
+        "put": "update",
+    })),
+    path("update_product_multi_user/<str:pk>/", views.UpdateProductPultiUser.as_view({
+        "put": "update",
     })),
 ]
 

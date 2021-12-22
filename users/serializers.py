@@ -1,4 +1,4 @@
-from users.models import UserProfile, User, Records
+from users.models import UserProfile, User, Records, Company, Products, RoleModel
 from rest_framework import serializers
 
 
@@ -21,4 +21,22 @@ class UserSerializer(serializers.ModelSerializer):
 class RecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = Records
+        fields = "__all__"
+
+
+class CompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = "__all__"
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Products
+        fields = "__all__"
+
+
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RoleModel
         fields = "__all__"
