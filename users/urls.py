@@ -15,11 +15,11 @@ urlpatterns = [
     path("getOnlyAuthUser", views.GetAuthUser.as_view({
         "get": "OnlyAuthUsers",
     })),
-    path("getUsers/<str:pk>/", views.GetAuthUser.as_view({
+    path("update_users/<str:pk>/", views.GetAuthUser.as_view({
         "put": "update",
     })),
     path("Getrecord", views.RecordsView.as_view({
-        "get": "GetData",
+        "get": "list",
     })),
     path("Addrecord", views.RecordsView.as_view({
         "post": "create",

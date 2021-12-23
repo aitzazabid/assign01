@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils.translation import ugettext_lazy as _
 
 from .models import User
-from users.models import UserProfile, Records, RoleModel, Company
+from users.models import UserProfile, Records, RoleModel, Company, Products
 
 
 # Register your models here.
@@ -34,3 +34,4 @@ admin.site.register(UserProfile)
 admin.site.register(Records)
 admin.site.register(RoleModel)
 admin.site.register(Company)
+admin.site.register(Products)

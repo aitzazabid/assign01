@@ -103,6 +103,11 @@ class RecordsView(viewsets.ModelViewSet):
                 recordData = Records.objects.values()
                 data = recordData
                 return Response(data)
+            else:
+                return Response({
+                    "success": False,
+                    "message": "Not product of given user."
+                })
         else:
             return Response({
                 "success": False,
@@ -175,17 +180,28 @@ class AddCompany(viewsets.ModelViewSet):
         user = UserProfile.objects.filter(user_id=user_id['user_id'])
         if user:
             data = {}
-            data["user"] = user_id['user_id']
             data["company_name"] = request.data["company_name"]
+            invalid = {"identity"}
+
+            def without_keys(d, keys):
+                return {x: d[x] for x in d if x not in keys}
+
+            data = without_keys(request.data, invalid)
+            data["user"] = user_id['user_id']
             if request.data["identity"] == "ADMIN":
                 if request.data.get('ids'):
                     data["user_list"] = request.data['ids'].split(",")
+                    data1 = []
                     for i in data["user_list"]:
-                        if not UserProfile.objects.filter(user=i):
+                        if UserProfile.objects.filter(my_email=i):
+                            user1 = UserProfile.objects.filter(my_email=i).first()
+                            data1.append(user1.user.id)
+                        else:
                             return Response({
                                 "success": False,
-                                "message": i + " id User does not exist"
+                                "message": str(i) + " User does not exist"
                             })
+                    data["user_list"] = data1
             serializer = CompanySerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
@@ -211,13 +227,12 @@ class AddCompany(viewsets.ModelViewSet):
 class AddProducts(viewsets.ModelViewSet):
     queryset = Products.objects.all()
     serializer_class = ProductSerializer
-
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
         id1 = request.GET
         company_id = id1["id"]
-        user_id = id1["user_id"]
+        user_id = request.user.id
         is_admin_user = RoleModel.objects.filter(user=user_id).filter(company=company_id).first()
         if is_admin_user.identity == "ADMIN":
             is_company = Company.objects.filter(id=company_id)
@@ -244,7 +259,7 @@ class AddProducts(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         id1 = request.GET
         company_id = id1["company_id"]
-        user_id = id1["user_id"]
+        user_id = request.user.id
         is_admin_user = RoleModel.objects.filter(user=user_id).filter(company=company_id).first()
         if is_admin_user.identity == "ADMIN":
             is_company = Company.objects.filter(id=company_id)
@@ -266,6 +281,21 @@ class AddProducts(viewsets.ModelViewSet):
                 "message": "Only Admin user can update product"
             })
 
+    def list(self, request, *args, **kwargs):
+        user = request.user.id
+        data = request.GET
+        company_id = data["company_id"]
+        check_user = Company.objects.filter(user=user)
+        if check_user:
+            import pdb; pdb.set_trace()
+            all_products = Products.objects.values()
+            company_products = all_products.filter(company=company_id)
+            if company_products:
+                data= company_products
+                return Response(data)
+            else:
+                return Response()
+
 
 class UpdateProductPultiUser(viewsets.ModelViewSet):
     queryset = Products.objects.all()
@@ -278,7 +308,7 @@ class UpdateProductPultiUser(viewsets.ModelViewSet):
         check_company = Company.objects.filter(id=company_id).first()
         if check_company:
             for i in check_company.user_list.all():
-                if i.id == int(user_id):
+                if i.email == user_id:
                     partial = True
                     instance = self.get_object()
                     serializer = self.get_serializer(instance, data=request.data, partial=partial)
