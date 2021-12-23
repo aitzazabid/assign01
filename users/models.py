@@ -78,7 +78,7 @@ class Company(models.Model):
     country = models.CharField(max_length=256, null=True, blank=True)
     address = models.CharField(max_length=256, null=True, blank=True)
     company_status = models.CharField(max_length=256, choices=ROLE_CHOICES, null=True, blank=True)
-    number_of_employees = models.IntegerField(null=True, blank=True)
+    number_of_employees = models.IntegerField(default=0, null=True, blank=True)
 
 
 class Products(models.Model):

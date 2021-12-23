@@ -45,8 +45,11 @@ urlpatterns = [
     path("update_product/<str:pk>/", views.AddProducts.as_view({
         "put": "update",
     })),
-    path("update_product_multi_user/<str:pk>/", views.UpdateProductPultiUser.as_view({
+    path("update_product_multi_user/<str:pk>/", views.UpdateProductmultiUser.as_view({
         "put": "update",
+    })),
+    path("get_all_products/", views.ShowAllProducts.as_view({
+        "get": "list",
     })),
 ]
 

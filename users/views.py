@@ -1,3 +1,4 @@
+
 from django.shortcuts import render
 from rest_framework import viewsets
 from users.models import UserProfile, Records, Company, Products, RoleModel
@@ -173,11 +174,11 @@ class AddCompany(viewsets.ModelViewSet):
     queryset = Company.objects.all()
     serializer_class = CompanySerializer
 
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
-        user_id = request.GET
-        user = UserProfile.objects.filter(user_id=user_id['user_id'])
+        user_id = request.user.id
+        user = UserProfile.objects.filter(user_id=user_id)
         if user:
             data = {}
             data["company_name"] = request.data["company_name"]
@@ -187,7 +188,7 @@ class AddCompany(viewsets.ModelViewSet):
                 return {x: d[x] for x in d if x not in keys}
 
             data = without_keys(request.data, invalid)
-            data["user"] = user_id['user_id']
+            data["user"] = user_id
             if request.data["identity"] == "ADMIN":
                 if request.data.get('ids'):
                     data["user_list"] = request.data['ids'].split(",")
@@ -206,7 +207,7 @@ class AddCompany(viewsets.ModelViewSet):
             if serializer.is_valid():
                 serializer.save()
                 data1 = {}
-                data1["user"] = user_id['user_id']
+                data1["user"] = user_id
                 data1["company"] = serializer.data['id']
                 data1["identity"] = request.data["identity"]
                 Roleserializer1 = RoleSerializer(data=data1)
@@ -221,6 +222,20 @@ class AddCompany(viewsets.ModelViewSet):
             return Response({
                 "success": False,
                 "message": "user cannot add company, user does not exist"
+            })
+
+    def list(self, request, *args, **kwargs):
+        user_id = request.user.id
+        user = Company.objects.filter(user=user_id)
+        if user:
+            all_companies = Company.objects.values()
+            response = all_companies.filter(user=user_id)
+            data = response
+            return Response(data)
+        else:
+            return Response({
+                "success": False,
+                "message": "User has not any company."
             })
 
 
@@ -285,19 +300,48 @@ class AddProducts(viewsets.ModelViewSet):
         user = request.user.id
         data = request.GET
         company_id = data["company_id"]
-        check_user = Company.objects.filter(user=user)
-        if check_user:
-            import pdb; pdb.set_trace()
-            all_products = Products.objects.values()
-            company_products = all_products.filter(company=company_id)
-            if company_products:
-                data= company_products
-                return Response(data)
+        if company_id:
+            check_company = Company.objects.filter(id=company_id)
+            if check_company:
+                check_user_company = Company.objects.filter(user=user)
+                if check_user_company:
+                    all_products = Products.objects.values()
+                    company_products = all_products.filter(company=company_id)
+                    if company_products:
+                        data = company_products
+                        return Response(data)
+                    else:
+                        return Response({
+                            "success": False,
+                            "message": "Company has not any product."
+                        })
+                else:
+                    return Response({
+                        "success": False,
+                        "message": "Company not found."
+                    })
             else:
-                return Response()
+                return Response({
+                    "success": False,
+                    "message": "Company does not exist."
+                })
+        else:
+            return Response({
+                "success": False,
+                "message": "Enter company id."
+            })
 
 
-class UpdateProductPultiUser(viewsets.ModelViewSet):
+class ShowAllProducts(viewsets.ModelViewSet):
+    queryset = Company.objects.all()
+    serializer_class = ProductSerializer
+
+    def list(self, request, *args, **kwargs):
+        products = Products.objects.values()
+        return Response(products)
+
+
+class UpdateProductmultiUser(viewsets.ModelViewSet):
     queryset = Products.objects.all()
     serializer_class = ProductSerializer
 
