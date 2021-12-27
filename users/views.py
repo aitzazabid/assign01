@@ -1,4 +1,3 @@
-
 from django.shortcuts import render
 from rest_framework import viewsets
 from users.models import UserProfile, Records, Company, Products, RoleModel
@@ -11,11 +10,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 
 
-# from django.core.mail import send_mail
-# from django.conf import settings
-
-
 # Create your views here.
+
 
 class GetUser(viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
@@ -32,6 +28,7 @@ class GetUser(viewsets.ModelViewSet):
             user.save()
             data = request.data
             data["user"] = user.id
+            data["my_name"] = str(data["first_name"]) + " " + str(data["last_name"])
             profile = self.get_serializer(data=data)
             if profile.is_valid():
                 profile.save()
@@ -83,7 +80,7 @@ class GetAuthUser(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         partial = True
-        instance = self.get_object()
+        instance = User.objects.filter(id=request.user.id).first()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         if serializer.is_valid():
             self.perform_update(serializer)
@@ -94,30 +91,8 @@ class RecordsView(viewsets.ModelViewSet):
     queryset = Records.objects.all()
     serializer_class = RecordSerializer
 
-    def GetData(self, request):
-        data = self.request.GET
-        user_id1 = data.get('id')
-        if user_id1:
-            request.data['user'] = user_id1
-            user_check = UserProfile.objects.filter(user_id=user_id1)
-            if user_check:
-                recordData = Records.objects.values()
-                data = recordData
-                return Response(data)
-            else:
-                return Response({
-                    "success": False,
-                    "message": "Not product of given user."
-                })
-        else:
-            return Response({
-                "success": False,
-                "message": "You need to enter user id"
-            })
-
     def create(self, request, *args, **kwargs):
-        data = self.request.GET
-        user_id1 = data.get('id')
+        user_id1 = request.user.id
         request.data['user'] = user_id1
         user_check = UserProfile.objects.filter(user_id=user_id1)
         if user_check:
@@ -132,24 +107,29 @@ class RecordsView(viewsets.ModelViewSet):
         })
 
     def update(self, request, *args, **kwargs):
-        data = self.request.GET
-        user_id1 = data.get('id')
+        user_id1 = request.user.id
         user_check = UserProfile.objects.filter(user_id=user_id1)
         if user_check:
-            partial = True
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=partial)
-            if serializer.is_valid():
-                self.perform_update(serializer)
-            return Response(serializer.data)
+            user_has_product = Records.objects.filter(user=user_id1).filter(id=kwargs['pk'])
+            if user_has_product:
+                partial = True
+                instance = self.get_object()
+                serializer = self.get_serializer(instance, data=request.data, partial=partial)
+                if serializer.is_valid():
+                    self.perform_update(serializer)
+                return Response(serializer.data)
+            else:
+                return Response({
+                    "success": False,
+                    "message": "User not have this product"
+                })
         return Response({
             "success": False,
             "message": "User does not exist"
         })
 
     def GetUserRecordsItems(self, request):
-        data = self.request.GET
-        user_id1 = data.get('id')
+        user_id1 = request.user.id
         user_check = UserProfile.objects.filter(user_id=user_id1)
         if user_check:
             user2 = Records.objects.filter(user_id=user_id1)
@@ -174,7 +154,7 @@ class AddCompany(viewsets.ModelViewSet):
     queryset = Company.objects.all()
     serializer_class = CompanySerializer
 
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
         user_id = request.user.id
@@ -238,11 +218,75 @@ class AddCompany(viewsets.ModelViewSet):
                 "message": "User has not any company."
             })
 
+    def update(self, request, *args, **kwargs):
+        user_id = request.user.id
+        is_user = UserProfile.objects.filter(user=user_id)
+        if is_user:
+            is_company = Company.objects.filter(user=user_id).filter(id=kwargs['pk']).first()
+            if is_company:
+                check_admin = RoleModel.objects.filter(user=user_id).filter(company=kwargs['pk']).first()
+                if check_admin:
+                    if check_admin.identity == 'ADMIN':
+                        dict1 = {}
+                        if request.data.get('ids'):
+                            ids1 = []
+                            multi_user_list = is_company.user_list.all()
+                            dict1["user_list"] = request.data['ids'].split(",")
+                            temp = 0
+                            for i in dict1["user_list"]:
+                                if i not in multi_user_list[temp].email:
+                                    user12 = UserProfile.objects.filter(my_email=i).first()
+                                    if user12:
+                                        ids1.append(user12.user_id)
+                                temp += 1
+                            counter_list_multi_user = []
+                            for i in range(len(multi_user_list)):
+                                counter_list_multi_user.append(multi_user_list[i].id)
+                            for i in ids1:
+                                if i not in counter_list_multi_user:
+                                    counter_list_multi_user.append(i)
+
+                            request.data["user_list"] = counter_list_multi_user
+                            partial = True
+                            instance = self.get_object()
+                            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+                            if serializer.is_valid():
+                                self.perform_update(serializer)
+                            return Response(serializer.data)
+                        else:
+                            partial = True
+                            instance = self.get_object()
+                            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+                            if serializer.is_valid():
+                                self.perform_update(serializer)
+                            return Response(serializer.data)
+                    else:
+                        return Response({
+                            "success": False,
+                            "message": "User can not update because user is not ADMIN"
+                        })
+                else:
+                    return Response({
+                        "success": False,
+                        "message": "User does not exist"
+                    })
+            else:
+                return Response({
+                    "success": False,
+                    "message": "company does not exist"
+                })
+        else:
+            return Response({
+                "success": False,
+                "message": "user does not exist"
+            })
+
 
 class AddProducts(viewsets.ModelViewSet):
     queryset = Products.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticated]
+
+    # permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
         id1 = request.GET
@@ -279,12 +323,19 @@ class AddProducts(viewsets.ModelViewSet):
         if is_admin_user.identity == "ADMIN":
             is_company = Company.objects.filter(id=company_id)
             if is_company:
-                partial = True
-                instance = self.get_object()
-                serializer = self.get_serializer(instance, data=request.data, partial=partial)
-                if serializer.is_valid():
-                    self.perform_update(serializer)
-                return Response(serializer.data)
+                has_product = Products.objects.filter(company=company_id).filter(id=kwargs['pk'])
+                if has_product:
+                    partial = True
+                    instance = self.get_object()
+                    serializer = self.get_serializer(instance, data=request.data, partial=partial)
+                    if serializer.is_valid():
+                        self.perform_update(serializer)
+                    return Response(serializer.data)
+                else:
+                    return Response({
+                        "success": False,
+                        "message": "user have not this product."
+                    })
             else:
                 return Response({
                     "success": False,
@@ -333,12 +384,15 @@ class AddProducts(viewsets.ModelViewSet):
 
 
 class ShowAllProducts(viewsets.ModelViewSet):
-    queryset = Company.objects.all()
+    queryset = Products.objects.all()
     serializer_class = ProductSerializer
+    http_method_names = ['get']
 
-    def list(self, request, *args, **kwargs):
-        products = Products.objects.values()
-        return Response(products)
+
+class ShowAllCompanies(viewsets.ModelViewSet):
+    queryset = Company.objects.all()
+    serializer_class = CompanySerializer
+    http_method_names = ['get']
 
 
 class UpdateProductmultiUser(viewsets.ModelViewSet):
@@ -353,12 +407,19 @@ class UpdateProductmultiUser(viewsets.ModelViewSet):
         if check_company:
             for i in check_company.user_list.all():
                 if i.email == user_id:
-                    partial = True
-                    instance = self.get_object()
-                    serializer = self.get_serializer(instance, data=request.data, partial=partial)
-                    if serializer.is_valid():
-                        self.perform_update(serializer)
-                    return Response(serializer.data)
+                    has_product = Products.objects.filter(company=company_id).filter(id=kwargs['pk'])
+                    if has_product:
+                        partial = True
+                        instance = self.get_object()
+                        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+                        if serializer.is_valid():
+                            self.perform_update(serializer)
+                        return Response(serializer.data)
+                    else:
+                        return Response({
+                            "success": False,
+                            "message": "user have not this product."
+                        })
             return Response({
                 "success": False,
                 "message": "This user is not in list of company"

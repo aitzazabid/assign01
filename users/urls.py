@@ -7,6 +7,8 @@ router = DefaultRouter(trailing_slash=False)
 
 router.register(r'getUser', GetUser)
 router.register(r'getAllUser', views.GetAuthUser)
+router.register(r'get_all_companies', views.ShowAllCompanies)
+router.register(r'get_all_products/', views.ShowAllProducts)
 
 urlpatterns = router.urls
 
@@ -15,7 +17,7 @@ urlpatterns = [
     path("getOnlyAuthUser", views.GetAuthUser.as_view({
         "get": "OnlyAuthUsers",
     })),
-    path("update_users/<str:pk>/", views.GetAuthUser.as_view({
+    path("update_user", views.GetAuthUser.as_view({
         "put": "update",
     })),
     path("Getrecord", views.RecordsView.as_view({
@@ -33,6 +35,9 @@ urlpatterns = [
     path("add_company/", views.AddCompany.as_view({
         "post": "create",
     })),
+    path("update_company/<str:pk>/", views.AddCompany.as_view({
+        "put": "update",
+    })),
     path("get_company/", views.AddCompany.as_view({
         "get": "list",
     })),
@@ -47,9 +52,6 @@ urlpatterns = [
     })),
     path("update_product_multi_user/<str:pk>/", views.UpdateProductmultiUser.as_view({
         "put": "update",
-    })),
-    path("get_all_products/", views.ShowAllProducts.as_view({
-        "get": "list",
     })),
 ]
 
