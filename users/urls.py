@@ -9,6 +9,7 @@ router.register(r'getUser', GetUser)
 router.register(r'getAllUser', views.GetAuthUser)
 router.register(r'get_all_companies', views.ShowAllCompanies)
 router.register(r'get_all_products/', views.ShowAllProducts)
+router.register(r'search', views.SearchByCompanyView)
 
 urlpatterns = router.urls
 
@@ -53,6 +54,7 @@ urlpatterns = [
     path("update_product_multi_user/<str:pk>/", views.UpdateProductmultiUser.as_view({
         "put": "update",
     })),
+    path('reset-password/', views.ResetPassword.as_view(), name='reset_password'),
 ]
 
 urlpatterns += router.urls

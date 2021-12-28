@@ -2,12 +2,18 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from users.models import UserProfile, Records, Company, Products, RoleModel
 from users.serializers import ProfileSerializer, UserSerializer, \
-    RecordSerializer, ProductSerializer, CompanySerializer, RoleSerializer
+    RecordSerializer, ProductSerializer, CompanySerializer, RoleSerializer, ResetPasswordSerializer, SearchProfileSerializer
 from rest_framework.response import Response
 from users.models import User
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, status, generics
+from rest_fuzzysearch import search, sort
+from rest_framework import filters
+from random import randint
+from django.conf import settings
+from django.core.mail import send_mail
 
 
 # Create your views here.
@@ -184,6 +190,9 @@ class AddCompany(viewsets.ModelViewSet):
                             })
                     data["user_list"] = data1
             serializer = CompanySerializer(data=data)
+            save_company_name = UserProfile.objects.filter(user=user_id).first()
+            save_company_name.company = data['company_name']
+            save_company_name.save()
             if serializer.is_valid():
                 serializer.save()
                 data1 = {}
@@ -231,22 +240,38 @@ class AddCompany(viewsets.ModelViewSet):
                         if request.data.get('ids'):
                             ids1 = []
                             multi_user_list = is_company.user_list.all()
-                            dict1["user_list"] = request.data['ids'].split(",")
-                            temp = 0
-                            for i in dict1["user_list"]:
-                                if i not in multi_user_list[temp].email:
-                                    user12 = UserProfile.objects.filter(my_email=i).first()
-                                    if user12:
-                                        ids1.append(user12.user_id)
-                                temp += 1
-                            counter_list_multi_user = []
-                            for i in range(len(multi_user_list)):
-                                counter_list_multi_user.append(multi_user_list[i].id)
-                            for i in ids1:
-                                if i not in counter_list_multi_user:
-                                    counter_list_multi_user.append(i)
+                            if multi_user_list:
+                                dict1["user_list"] = request.data['ids'].split(",")
+                                temp = 0
+                                import pdb;
+                                pdb.set_trace()
+                                for i in dict1["user_list"]:
+                                    if i not in multi_user_list[temp].email:
+                                        user12 = UserProfile.objects.filter(my_email=i).first()
+                                        if user12:
+                                            ids1.append(user12.user_id)
+                                    temp += 1
+                                counter_list_multi_user = []
+                                for i in range(len(multi_user_list)):
+                                    counter_list_multi_user.append(multi_user_list[i].id)
+                                for i in ids1:
+                                    if i not in counter_list_multi_user:
+                                        counter_list_multi_user.append(i)
 
-                            request.data["user_list"] = counter_list_multi_user
+                                request.data["user_list"] = counter_list_multi_user
+                            else:
+                                request.data["user_list"] = request.data['ids'].split(",")
+                                data1 = []
+                                for i in request.data["user_list"]:
+                                    if UserProfile.objects.filter(my_email=i):
+                                        user1 = UserProfile.objects.filter(my_email=i).first()
+                                        data1.append(user1.user.id)
+                                    else:
+                                        return Response({
+                                            "success": False,
+                                            "message": str(i) + " User does not exist"
+                                        })
+                                request.data["user_list"] = data1
                             partial = True
                             instance = self.get_object()
                             serializer = self.get_serializer(instance, data=request.data, partial=partial)
@@ -307,11 +332,13 @@ class AddProducts(viewsets.ModelViewSet):
             else:
                 return Response({
                     "success": False,
+                    'code': status.HTTP_404_NOT_FOUND,
                     "message": "company does not exist"
                 })
         else:
             return Response({
                 "success": False,
+                'code': status.HTTP_404_NOT_FOUND,
                 "message": "Only Admin user can add product"
             })
 
@@ -418,14 +445,91 @@ class UpdateProductmultiUser(viewsets.ModelViewSet):
                     else:
                         return Response({
                             "success": False,
+                            'code': status.HTTP_404_NOT_FOUND,
                             "message": "user have not this product."
                         })
             return Response({
                 "success": False,
+                'code': status.HTTP_404_NOT_FOUND,
                 "message": "This user is not in list of company"
             })
         else:
             return Response({
                 "success": False,
+                'code': status.HTTP_404_NOT_FOUND,
                 "message": "This company does not exist"
             })
+
+
+class ResetPassword(generics.UpdateAPIView):
+    serializer_class = ResetPasswordSerializer
+    model = User
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, queryset=None):
+        obj = self.request.user
+        return obj
+
+    def update(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+
+        if serializer.is_valid():
+            if not self.object.check_password(serializer.data.get("old_pwd")):
+                return Response({"old_pwd": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
+            self.object.set_password(serializer.data.get("new_pwd"))
+            self.object.save()
+            response = {
+                'status': 'success',
+                'code': status.HTTP_200_OK,
+                'message': 'Password updated successfully',
+                'data': []
+            }
+            return Response(response)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SearchByCompanyView(viewsets.ModelViewSet):
+    queryset = UserProfile.objects.all()
+    serializer_class = SearchProfileSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['company']
+
+
+class ForgotPassword(viewsets.ModelViewSet):
+
+    def get_email(self, request):
+        if request.data.get("email", None):
+            user_data = request.data
+            email = user_data["email"]
+            value = randint(100000, 999999)
+            ctx = {
+                'link':  str(value),
+                'email': email
+            }
+            user = UserProfile.objects.filter(my_email=email).first()
+            if not user:
+                return Response({"success": False, "error": "User does not exist"})
+            else:
+                user.forgot_password = value
+                user.save()
+                try:
+                    recipient_list = [email, ]
+                    subject = 'Forgot password'
+                    send_mail(subject, ctx, ['example@example.com'], recipient_list)
+                    return Response({'value': value})
+                except Exception as e:
+                    print("error", e)
+        elif request.data.get("token", None):
+            user_data = request.data
+            token1 = user_data["token"]
+            user = UserProfile.objects.filter(forgot_password=token1).first()
+            if user:
+                user.user.set_password(request.data["new_password"])
+                user.user.save()
+                return Response('success: Okay')
+            else:
+                return Response({"success": False, "error": "User does not exist"})
+        else:
+            return Response({"success": False, "error": "User does not exist"})

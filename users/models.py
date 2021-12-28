@@ -59,6 +59,9 @@ class UserProfile(models.Model):
     last_name = models.CharField(max_length=256)
     user_mobile_number = models.IntegerField(default=0, null=True, blank=True)
 
+    company = models.CharField(max_length=256, default="", blank=True, null=True)
+    forgot_password = models.TextField(null=True, blank=True)
+
 
 class Records(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='RecordUser')
