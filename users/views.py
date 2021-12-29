@@ -14,6 +14,9 @@ from rest_framework import filters
 from random import randint
 from django.conf import settings
 from django.core.mail import send_mail
+from users import constants
+from assign01.settings import DEFAULT_FROM_EMAIL
+
 
 
 # Create your views here.
@@ -243,8 +246,6 @@ class AddCompany(viewsets.ModelViewSet):
                             if multi_user_list:
                                 dict1["user_list"] = request.data['ids'].split(",")
                                 temp = 0
-                                import pdb;
-                                pdb.set_trace()
                                 for i in dict1["user_list"]:
                                     if i not in multi_user_list[temp].email:
                                         user12 = UserProfile.objects.filter(my_email=i).first()
@@ -499,13 +500,13 @@ class SearchByCompanyView(viewsets.ModelViewSet):
 
 class ForgotPassword(viewsets.ModelViewSet):
 
-    def get_email(self, request):
+    def get_email(self, request, *args, **kwargs):
         if request.data.get("email", None):
             user_data = request.data
             email = user_data["email"]
             value = randint(100000, 999999)
             ctx = {
-                'link':  str(value),
+                'link':  constants.forgot_password+"?"+str(value),
                 'email': email
             }
             user = UserProfile.objects.filter(my_email=email).first()
@@ -517,13 +518,12 @@ class ForgotPassword(viewsets.ModelViewSet):
                 try:
                     recipient_list = [email, ]
                     subject = 'Forgot password'
-                    send_mail(subject, ctx, ['example@example.com'], recipient_list)
+                    send_mail(subject, constants.forgot_password+"?"+str(value), DEFAULT_FROM_EMAIL, recipient_list)
                     return Response({'value': value})
                 except Exception as e:
                     print("error", e)
-        elif request.data.get("token", None):
-            user_data = request.data
-            token1 = user_data["token"]
+        elif request.GET['pk']:
+            token1 = request.GET['pk']
             user = UserProfile.objects.filter(forgot_password=token1).first()
             if user:
                 user.user.set_password(request.data["new_password"])

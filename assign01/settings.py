@@ -154,3 +154,11 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+EMAIL_BACKEND = 'django_amazon_ses.EmailBackend'
+
+AWS_SES_ACCESS_KEY_ID = 'AKIA2QOWL7J5DG7PBHEM'
+AWS_SES_SECRET_ACCESS_KEY = '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'
+AWS_SES_REGION = 'eu-west-2'
+
+DEFAULT_FROM_EMAIL = 'RFX ME <info@rfxme.com>'

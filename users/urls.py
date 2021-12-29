@@ -55,6 +55,9 @@ urlpatterns = [
         "put": "update",
     })),
     path('reset-password/', views.ResetPassword.as_view(), name='reset_password'),
+    path('forgot-password/', views.ForgotPassword.as_view({
+        "post": "get_email"
+    }), name="forgot_password"),
 ]
 
 urlpatterns += router.urls

@@ -2,3 +2,4 @@ django==3.2.9
 djangorestframework==3.12.4
 fuzzysearch==0.7.3
 psycopg2-binary==2.9.2
+django-amazon-ses==4.0.0
