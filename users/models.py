@@ -62,6 +62,9 @@ class UserProfile(models.Model):
     company = models.CharField(max_length=256, default="", blank=True, null=True)
     forgot_password = models.TextField(default="", null=True, blank=True)
 
+    account_balance = models.FloatField(default=0.0, blank=True, null=True)
+    google_id = models.CharField(max_length=256, default="", blank=True, null=True)
+
 
 class Records(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='RecordUser')
@@ -85,10 +88,15 @@ class Company(models.Model):
 
 
 class Products(models.Model):
+    ROLE_CHOICES = (
+        ('AVAILABLE', 'available'),
+        ('NOT AVAILABLE', 'not available'),
+    )
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='product_company')
     product_name = models.CharField(max_length=256)
     price = models.IntegerField()
     description = models.CharField(max_length=256, null=True, blank=True)
+    status = models.CharField(default="", max_length=256, choices=ROLE_CHOICES)
 
 
 class RoleModel(models.Model):

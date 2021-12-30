@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'users',
     'rest_framework.authtoken',
     'corsheaders',
+    'django.contrib.sites',
 ]
 
 MIDDLEWARE = [
@@ -61,8 +62,7 @@ AUTH_USER_MODEL = 'users.User'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -74,6 +74,7 @@ TEMPLATES = [
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'assign01.wsgi.application'
 
@@ -162,3 +163,21 @@ AWS_SES_SECRET_ACCESS_KEY = 'ZEOVfTsCza2AGZHVaV1lRohTpq7jaJtscY+l1i7N'
 AWS_SES_REGION = 'eu-west-2'
 
 DEFAULT_FROM_EMAIL = 'RFX ME <info@rfxme.com>'
+
+
+# SOCIALACCOUNT_PROVIDERS = {
+#     'google': {
+#         'SCOPE': [
+#             'profile',
+#             'email',
+#         ],
+#         'AUTH_PARAMS': {
+#             'access_type': 'online',
+#         }
+#     }
+# }
+#
+# SITE_ID = 2
+#
+# LOGIN_REDIRECT_URL = 'login/'
+# LOGOUT_REDIRECT_URL = '/'

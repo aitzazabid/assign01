@@ -1,7 +1,8 @@
 from rest_framework.routers import DefaultRouter
 from users.views import GetUser
-from django.urls import path
+from django.urls import path, include
 from users import views
+from django.views.generic import TemplateView
 
 router = DefaultRouter(trailing_slash=False)
 
@@ -10,10 +11,16 @@ router.register(r'getAllUser', views.GetAuthUser)
 router.register(r'get_all_companies', views.ShowAllCompanies)
 router.register(r'get_all_products/', views.ShowAllProducts)
 router.register(r'search', views.SearchByCompanyView)
+router.register(r'google_login', views.GoogleSignViewSet)
+
 
 urlpatterns = router.urls
 
 urlpatterns = [
+
+    # path('', TemplateView.as_view(template_name="index.html")),
+    # path('accounts/', include('allauth.urls')),
+
     path('login/', views.Login.as_view(), name='log_in'),
     path("getOnlyAuthUser", views.GetAuthUser.as_view({
         "get": "OnlyAuthUsers",
@@ -58,6 +65,9 @@ urlpatterns = [
     path('forgot-password/', views.ForgotPassword.as_view({
         "post": "get_email"
     }), name="forgot_password"),
+    path('purchase_prod/', views.PurchaseProduct.as_view({
+        "post": "purchase_product"
+    }), name="purchase-product")
 ]
 
 urlpatterns += router.urls
