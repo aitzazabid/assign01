@@ -1,8 +1,9 @@
 from rest_framework.routers import DefaultRouter
 from users.views import GetUser
-from django.urls import path, include
+from django.urls import path
 from users import views
-from django.views.generic import TemplateView
+from django.conf import settings
+from django.conf.urls.static import static
 
 router = DefaultRouter(trailing_slash=False)
 
@@ -17,13 +18,13 @@ router.register(r'google_login', views.GoogleSignViewSet)
 urlpatterns = router.urls
 
 urlpatterns = [
-
-    # path('', TemplateView.as_view(template_name="index.html")),
-    # path('accounts/', include('allauth.urls')),
-
     path('login/', views.Login.as_view(), name='log_in'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
     path("getOnlyAuthUser", views.GetAuthUser.as_view({
         "get": "OnlyAuthUsers",
+    })),
+    path("add_profile_image/", views.SetProfilePic.as_view({
+        "put": "update",
     })),
     path("update_user", views.GetAuthUser.as_view({
         "put": "update",
@@ -34,6 +35,9 @@ urlpatterns = [
     path("Addrecord", views.RecordsView.as_view({
         "post": "create",
     })),
+    path("delete_record", views.RecordsView.as_view({
+        "delete": "destroy",
+    })),
     path("record/<str:pk>/", views.RecordsView.as_view({
         "put": "update",
     })),
@@ -43,6 +47,9 @@ urlpatterns = [
     path("add_company/", views.AddCompany.as_view({
         "post": "create",
     })),
+    path("delete_company/", views.AddCompany.as_view({
+        "delete": "destroy",
+    })),
     path("update_company/<str:pk>/", views.AddCompany.as_view({
         "put": "update",
     })),
@@ -51,6 +58,9 @@ urlpatterns = [
     })),
     path("add_product/", views.AddProducts.as_view({
         "post": "create",
+    })),
+    path("delete_product/", views.AddProducts.as_view({
+        "delete": "destroy",
     })),
     path("get_product/", views.AddProducts.as_view({
         "get": "list",
@@ -71,3 +81,7 @@ urlpatterns = [
 ]
 
 urlpatterns += router.urls
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)

@@ -3,6 +3,10 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 
+def ProfileImages(instance, filename):
+    return '/'.join(['ProfileImage', str(instance.id), filename])
+
+
 class UserManager(BaseUserManager):
     """Define a model manager for User model with no username field."""
 
@@ -51,6 +55,7 @@ class User(AbstractUser):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    profile_image = models.ImageField(upload_to=ProfileImages, max_length=254, blank=True, null=True)
     my_email = models.CharField(max_length=256, default="", blank=True, null=True)
     my_name = models.CharField(max_length=256)
     country = models.CharField(max_length=256, null=True, blank=True)

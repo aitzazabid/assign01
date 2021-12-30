@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets, status, generics
 from rest_fuzzysearch import search, sort
 from rest_framework import filters
+from rest_framework.views import APIView
 from random import randint
 from django.conf import settings
 from django.core.mail import send_mail
@@ -49,13 +50,13 @@ class GetUser(viewsets.ModelViewSet):
             return Response({
                 "success": False,
                 'code': status.HTTP_406_NOT_ACCEPTABLE,
-                "error": profile._errors}
+                "error": profile._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
             )
 
         return Response({
             "success": False,
             'code': status.HTTP_406_NOT_ACCEPTABLE,
-            "error": user._errors}
+            "error": user._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
         )
 
 
@@ -79,13 +80,25 @@ class Login(ObtainAuthToken):
                     "success": False,
                     'code': status.HTTP_401_UNAUTHORIZED,
                     "message": "The password that you've entered is incorrect"
-                })
+                }, status=status.HTTP_401_UNAUTHORIZED)
         else:
             return Response({
                 "success": False,
                 'code': status.HTTP_404_NOT_FOUND,
                 "message": "user does not exists"
-            })
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class LogoutView(APIView):
+
+    def put(self, request):
+        # simply delete the token to force a login
+        dt = request.data
+        token = dt.get('token')
+        t = Token.objects.filter(key=token).delete()
+        return Response({
+            'success': True,
+            "message": "Logout successfull"}, status=status.HTTP_200_OK)
 
 
 class GetAuthUser(viewsets.ModelViewSet):
@@ -104,7 +117,37 @@ class GetAuthUser(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         if serializer.is_valid():
             self.perform_update(serializer)
-        return Response(serializer.data)
+            return Response(serializer.data)
+        else:
+            return Response({
+                "success": False,
+                'code': status.HTTP_406_NOT_ACCEPTABLE,
+                "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
+            )
+
+
+class SetProfilePic(viewsets.ModelViewSet):
+    queryset = UserProfile.objects.all()
+    serializer_class = ProfileSerializer
+    # http_method_names = ['put']
+
+    def update(self, request, *args, **kwargs):
+        import pdb;
+        pdb.set_trace()
+        user_id = request.user.id
+        check_user = UserProfile.objects.filter(user=user_id).first()
+        if check_user:
+            check_user.profile_image = request.data['image']
+            check_user.save()
+            return Response({
+                'success': True,
+                'message': 'Image saved.'
+            }, status = status.HTTP_200_OK)
+        else:
+            return Response({
+                'success': False,
+                'message': 'user does not exist.'
+            }, status = status.HTTP_404_NOT_FOUND)
 
 
 class RecordsView(viewsets.ModelViewSet):
@@ -124,13 +167,13 @@ class RecordsView(viewsets.ModelViewSet):
                 return Response({
                     "success": False,
                     'code': status.HTTP_406_NOT_ACCEPTABLE,
-                    "error": serializer._errors}
+                    "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                 )
         return Response({
             "success": False,
             'code': status.HTTP_404_NOT_FOUND,
             "message": "User does not exist"
-        })
+        }, status=status.HTTP_404_NOT_FOUND)
 
     def update(self, request, *args, **kwargs):
         user_id1 = request.user.id
@@ -143,23 +186,24 @@ class RecordsView(viewsets.ModelViewSet):
                 serializer = self.get_serializer(instance, data=request.data, partial=partial)
                 if serializer.is_valid():
                     self.perform_update(serializer)
+                    return Response(serializer.data)
                 else:
                     return Response({
                         "success": False,
                         'code': status.HTTP_406_NOT_ACCEPTABLE,
-                        "error": serializer._errors}
+                        "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                     )
             else:
                 return Response({
                     "success": False,
                     'code': status.HTTP_404_NOT_FOUND,
                     "message": "User not have this product"
-                })
+                }, status=status.HTTP_404_NOT_FOUND)
         return Response({
             "success": False,
             'code': status.HTTP_404_NOT_FOUND,
             "message": "User does not exist"
-        })
+        }, status=status.HTTP_404_NOT_FOUND)
 
     def GetUserRecordsItems(self, request):
         user_id1 = request.user.id
@@ -176,13 +220,44 @@ class RecordsView(viewsets.ModelViewSet):
                     "success": False,
                     'code': status.HTTP_404_NOT_FOUND,
                     "message": "User's item does not exist"
-                })
+                }, status=status.HTTP_404_NOT_FOUND)
         else:
             return Response({
                 "success": False,
                 'code': status.HTTP_404_NOT_FOUND,
                 "message": "User does not exist"
-            })
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def destroy(self, request, *args, **kwargs):
+        import pdb;
+        pdb.set_trace()
+        user_id = request.user.id
+        check_user = UserProfile.objects.filter(user=user_id)
+        if check_user:
+            check_record = Records.objects.filter(id=request.GET['id']).first()
+            if check_record:
+                is_user_record = Records.objects.filter(user=user_id).filter(id=request.GET['id']).first()
+                if is_user_record:
+                    is_user_record.delete()
+                    return Response({'success': True, 'message': "Product deleted."}, status=status.HTTP_200_OK)
+                else:
+                    return Response({
+                        "success": False,
+                        'code': status.HTTP_404_NOT_FOUND,
+                        "message": "User has not this record."
+                    }, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({
+                    "success": False,
+                    'code': status.HTTP_404_NOT_FOUND,
+                    "message": "Record does not exist."
+                }, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({
+                "success": False,
+                'code': status.HTTP_404_NOT_FOUND,
+                "message": "User does not exist."
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
 class AddCompany(viewsets.ModelViewSet):
@@ -217,13 +292,13 @@ class AddCompany(viewsets.ModelViewSet):
                                 "success": False,
                                 'code': status.HTTP_404_NOT_FOUND,
                                 "message": str(i) + " User does not exist"
-                            })
+                            }, status=status.HTTP_404_NOT_FOUND)
                     data["user_list"] = data1
             else:
                 return Response({
                     "success": False,
                     'code': status.HTTP_406_NOT_ACCEPTABLE,
-                    "message": "Please enter identity."}
+                    "message": "Please enter identity."}, status=status.HTTP_406_NOT_ACCEPTABLE
                 )
             serializer = CompanySerializer(data=data)
             save_company_name = UserProfile.objects.filter(user=user_id).first()
@@ -242,21 +317,21 @@ class AddCompany(viewsets.ModelViewSet):
                     return Response({
                         "success": False,
                         'code': status.HTTP_406_NOT_ACCEPTABLE,
-                        "error": Roleserializer1._errors}
+                        "error": Roleserializer1._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                     )
                 return Response(serializer.data)
             else:
                 return Response({
                     "success": False,
                     'code': status.HTTP_406_NOT_ACCEPTABLE,
-                    "error": serializer._errors}
+                    "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                 )
         else:
             return Response({
                 "success": False,
                 'code': status.HTTP_401_UNAUTHORIZED,
                 "message": "user cannot add company, user does not exist"
-            })
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
     def list(self, request, *args, **kwargs):
         user_id = request.user.id
@@ -271,7 +346,7 @@ class AddCompany(viewsets.ModelViewSet):
                 "success": False,
                 'code': status.HTTP_404_NOT_FOUND,
                 "message": "User has not any company."
-            })
+            }, status=status.HTTP_404_NOT_FOUND)
 
     def update(self, request, *args, **kwargs):
         user_id = request.user.id
@@ -315,7 +390,7 @@ class AddCompany(viewsets.ModelViewSet):
                                             "success": False,
                                             'code': status.HTTP_404_NOT_FOUND,
                                             "message": str(i) + " User does not exist"
-                                        })
+                                        }, status=status.HTTP_404_NOT_FOUND)
                                 request.data["user_list"] = data1
                             partial = True
                             instance = self.get_object()
@@ -327,7 +402,7 @@ class AddCompany(viewsets.ModelViewSet):
                                 return Response({
                                     "success": False,
                                     'code': status.HTTP_406_NOT_ACCEPTABLE,
-                                    "error": serializer._errors}
+                                    "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                                 )
                         else:
                             partial = True
@@ -340,37 +415,55 @@ class AddCompany(viewsets.ModelViewSet):
                                 return Response({
                                     "success": False,
                                     'code': status.HTTP_406_NOT_ACCEPTABLE,
-                                    "error": serializer._errors}
+                                    "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                                 )
                     else:
                         return Response({
                             "success": False,
                             'code': status.HTTP_401_UNAUTHORIZED,
                             "message": "User can not update because user is not ADMIN"
-                        })
+                        }, status=status.HTTP_401_UNAUTHORIZED)
                 else:
                     return Response({
                         "success": False,
                         'code': status.HTTP_404_NOT_FOUND,
                         "message": "User does not exist"
-                    })
+                    }, status=status.HTTP_404_NOT_FOUND)
             else:
                 return Response({
                     "success": False,
                     'code': status.HTTP_404_NOT_FOUND,
                     "message": "company does not exist"
-                })
+                }, status=status.HTTP_404_NOT_FOUND)
         else:
             return Response({
                 "success": False,
                 'code': status.HTTP_404_NOT_FOUND,
                 "message": "user does not exist"
-            })
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def destroy(self, request, *args, **kwargs):
+        user_id = request.user.id
+        company_id = request.GET['company_id']
+        check_company = RoleModel.objects.filter(user=user_id).filter(company=company_id).first()
+        if check_company:
+            if check_company.identity == 'ADMIN':
+                check_company.delete()
+                return Response({
+                    'success': False,
+                    'message': 'Company deleted.'
+                }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'success': False,
+                'message': 'Company does not exist.'
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
 class AddProducts(viewsets.ModelViewSet):
     queryset = Products.objects.all()
     serializer_class = ProductSerializer
+
     # permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
@@ -391,20 +484,20 @@ class AddProducts(viewsets.ModelViewSet):
                     return Response({
                         "success": False,
                         'code': status.HTTP_406_NOT_ACCEPTABLE,
-                        "error": serializer._errors}
+                        "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                     )
             else:
                 return Response({
                     "success": False,
                     'code': status.HTTP_404_NOT_FOUND,
                     "message": "company does not exist"
-                })
+                }, status=status.HTTP_404_NOT_FOUND)
         else:
             return Response({
                 "success": False,
                 'code': status.HTTP_401_UNAUTHORIZED,
                 "message": "Only Admin user can add product"
-            })
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
     def update(self, request, *args, **kwargs):
         id1 = request.GET
@@ -426,26 +519,26 @@ class AddProducts(viewsets.ModelViewSet):
                         return Response({
                             "success": False,
                             'code': status.HTTP_406_NOT_ACCEPTABLE,
-                            "error": serializer._errors}
+                            "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                         )
                 else:
                     return Response({
                         "success": False,
                         'code': status.HTTP_404_NOT_FOUND,
                         "message": "user have not this product."
-                    })
+                    }, status=status.HTTP_404_NOT_FOUND)
             else:
                 return Response({
                     "success": False,
                     'code': status.HTTP_404_NOT_FOUND,
                     "message": "company does not exist"
-                })
+                }, status=status.HTTP_404_NOT_FOUND)
         else:
             return Response({
                 "success": False,
                 'code': status.HTTP_401_UNAUTHORIZED,
                 "message": "Only Admin user can update product"
-            })
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
     def list(self, request, *args, **kwargs):
         user = request.user.id
@@ -466,25 +559,47 @@ class AddProducts(viewsets.ModelViewSet):
                             "success": False,
                             'code': status.HTTP_404_NOT_FOUND,
                             "message": "Company has not any product."
-                        })
+                        }, status=status.HTTP_404_NOT_FOUND)
                 else:
                     return Response({
                         "success": False,
                         'code': status.HTTP_404_NOT_FOUND,
                         "message": "Company not found."
-                    })
+                    }, status=status.HTTP_404_NOT_FOUND)
             else:
                 return Response({
                     "success": False,
                     'code': status.HTTP_404_NOT_FOUND,
                     "message": "Company does not exist."
-                })
+                }, status=status.HTTP_404_NOT_FOUND)
         else:
             return Response({
                 "success": False,
                 "cpde": status.HTTP_400_BAD_REQUEST,
                 "message": "Enter company id."
-            })
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        import pdb;
+        pdb.set_trace()
+        user_id = request.user.id
+        company_id = request.GET['company_id']
+        check_user_company = Company.objects.filter(user=user_id).filter(id=company_id)
+        if check_user_company:
+            check_product = Products.objects.filter(company=company_id).filter(id=request.GET['prod_id']).first()
+            if check_product:
+                check_product.delete()
+                return Response({'success': True, 'message': 'Product deleted.'}, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'success': False,
+                    'message': 'Product does not exist.'
+                }, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({
+                'success': False,
+                'message': 'company does not exist.'
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
 class ShowAllProducts(viewsets.ModelViewSet):
@@ -523,25 +638,25 @@ class UpdateProductmultiUser(viewsets.ModelViewSet):
                             return Response({
                                 "success": False,
                                 'code': status.HTTP_406_NOT_ACCEPTABLE,
-                                "error": serializer._errors}
+                                "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                             )
                     else:
                         return Response({
                             "success": False,
                             'code': status.HTTP_404_NOT_FOUND,
                             "message": "user have not this product."
-                        })
+                        }, status=status.HTTP_404_NOT_FOUND)
             return Response({
                 "success": False,
                 'code': status.HTTP_404_NOT_FOUND,
                 "message": "This user is not in list of company"
-            })
+            }, status=status.HTTP_404_NOT_FOUND)
         else:
             return Response({
                 "success": False,
                 'code': status.HTTP_404_NOT_FOUND,
                 "message": "This company does not exist"
-            })
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
 class ResetPassword(generics.UpdateAPIView):
@@ -573,7 +688,7 @@ class ResetPassword(generics.UpdateAPIView):
             return Response({
                 "success": False,
                 'code': status.HTTP_406_NOT_ACCEPTABLE,
-                "error": serializer._errors}
+                "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
             )
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -591,7 +706,7 @@ class ForgotPassword(viewsets.ModelViewSet):
         if request.data.get("email", None):
             user_data = request.data
             email = user_data["email"]
-            check_user = UserProfile.objects.filter(my_email = email).first()
+            check_user = UserProfile.objects.filter(my_email=email).first()
             if check_user:
                 value = randint(100000, 999999)
                 ctx = {
@@ -603,7 +718,7 @@ class ForgotPassword(viewsets.ModelViewSet):
                     return Response({
                         "success": False,
                         'code': status.HTTP_404_NOT_FOUND,
-                        "error": "User does not exist"})
+                        "error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
                 else:
                     user.forgot_password = value
                     user.save()
@@ -622,18 +737,24 @@ class ForgotPassword(viewsets.ModelViewSet):
                     "success": False,
                     'code': status.HTTP_404_NOT_FOUND,
                     "message": "user does not exist."
-                })
+                }, status=status.HTTP_404_NOT_FOUND)
         elif request.GET['pk']:
             token1 = request.GET['pk']
             user = UserProfile.objects.filter(forgot_password=token1).first()
             if user:
                 user.user.set_password(request.data["new_password"])
                 user.user.save()
-                return Response({'success': True, 'code': status.HTTP_200_OK})
+                return Response({'success': True, 'code': status.HTTP_200_OK}, status=status.HTTP_200_OK)
             else:
-                return Response({"success": False, 'code':status.HTTP_404_NOT_FOUND, "error": "User does not exist"})
+                return Response({
+                    "success": False,
+                    'code': status.HTTP_404_NOT_FOUND,
+                    "error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
         else:
-            return Response({"success": False, 'code':status.HTTP_404_NOT_FOUND, "error": "User does not exist"})
+            return Response({
+                "success": False,
+                'code': status.HTTP_404_NOT_FOUND,
+                "error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class PurchaseProduct(viewsets.ModelViewSet):
@@ -672,44 +793,44 @@ class PurchaseProduct(viewsets.ModelViewSet):
                                     return Response({
                                         "success": False,
                                         'code': status.HTTP_406_NOT_ACCEPTABLE,
-                                        "error": serializer._errors}
+                                        "error": serializer._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                                     )
                             else:
                                 return Response({
                                     "success": False,
                                     'code': status.HTTP_406_NOT_ACCEPTABLE,
                                     "message": "user account balance is less than product price."
-                                })
+                                }, status=status.HTTP_406_NOT_ACCEPTABLE)
                         else:
                             return Response({
                                 "success": False,
                                 'code': status.HTTP_404_NOT_FOUND,
                                 "message": "Product is not available"
-                            })
+                            }, status=status.HTTP_404_NOT_FOUND)
                     else:
                         return Response({
                             "success": False,
                             'code': status.HTTP_404_NOT_FOUND,
                             "message": "Product is not available"
-                        })
+                        }, status=status.HTTP_404_NOT_FOUND)
                 else:
                     return Response({
                         "success": False,
                         'code': status.HTTP_404_NOT_FOUND,
                         "message": "Product does not exists."
-                    })
+                    }, status=status.HTTP_404_NOT_FOUND)
             else:
                 return Response({
                     "success": False,
                     'code': status.HTTP_404_NOT_FOUND,
                     "message": "company does not exists."
-                })
+                }, status=status.HTTP_404_NOT_FOUND)
         else:
             return Response({
                 "success": False,
                 'code': status.HTTP_404_NOT_FOUND,
                 "message": "user does not exists."
-            })
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
 class GoogleSignViewSet(viewsets.ModelViewSet):
@@ -719,11 +840,11 @@ class GoogleSignViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         if "google_id" not in request.data:
-            return Response({"success": False, 'code':status.HTTP_404_NOT_FOUND, "error": {
+            return Response({"success": False, 'code': status.HTTP_404_NOT_FOUND, "error": {
                 "google_id": [
                     "This field is required"
                 ]
-            }})
+            }}, status=status.HTTP_404_NOT_FOUND)
         email = request.data["google_id"]
         password = str(email) + "flicken"
         user_data = request.data
@@ -767,10 +888,10 @@ class GoogleSignViewSet(viewsets.ModelViewSet):
                     return Response({
                         "success": False,
                         'code': status.HTTP_406_NOT_ACCEPTABLE,
-                        "error": profile._errors}
+                        "error": profile._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                     )
             return Response({
                 "success": False,
                 'code': status.HTTP_406_NOT_ACCEPTABLE,
-                "error": user._errors}
+                "error": user._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
             )

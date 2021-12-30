@@ -3,3 +3,4 @@ djangorestframework==3.12.4
 fuzzysearch==0.7.3
 psycopg2-binary==2.9.2
 django-amazon-ses==4.0.0
+Pillow==8.4.0
