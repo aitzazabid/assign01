@@ -182,14 +182,22 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-EMAIL_BACKEND = 'django_amazon_ses.EmailBackend'
+# EMAIL_BACKEND = 'django_amazon_ses.EmailBackend'
+#
+# AWS_SES_ACCESS_KEY_ID = 'AKIA2QOWL7J5DG7PBHEM'
+# AWS_SES_SECRET_ACCESS_KEY = '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'
+# AWS_SES_REGION = 'eu-west-2'
+#
+# DEFAULT_FROM_EMAIL = 'RFX ME <info@rfxme.com>'
 
-AWS_SES_ACCESS_KEY_ID = 'AKIA2QOWL7J5DG7PBHEM'
-AWS_SES_SECRET_ACCESS_KEY = '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'
-AWS_SES_REGION = 'eu-west-2'
-
-DEFAULT_FROM_EMAIL = 'RFX ME <info@rfxme.com>'
-
+DEFAULT_FROM_EMAIL = 'Flicken <development@flicken.io>'
+SENDGRID_SANDBOX_MODE_IN_DEBUG = True
+SENDGRID_ECHO_TO_STDOUT = True
+# EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+# SENDGRID_API_KEY = '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'
+EMAIL_BACKEND = "sgbackend.SendGridBackend"
+# SENDGRID_API_KEY = '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'
+SENDGRID_API_KEY = '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'
 
 # SOCIALACCOUNT_PROVIDERS = {
 #     'google': {

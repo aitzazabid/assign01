@@ -787,23 +787,8 @@ class ForgotPassword(viewsets.ModelViewSet):
                     'code': status.HTTP_404_NOT_FOUND,
                     "message": "user does not exist."
                 }, status=status.HTTP_404_NOT_FOUND)
-        elif request.GET['pk']:
-            token1 = request.GET['pk']
-            user = UserProfile.objects.filter(forgot_password=token1).first()
-            if user:
-                user.user.set_password(request.data["new_password"])
-                user.user.save()
-                return Response({'success': True, 'code': status.HTTP_200_OK}, status=status.HTTP_200_OK)
-            else:
-                return Response({
-                    "success": False,
-                    'code': status.HTTP_404_NOT_FOUND,
-                    "error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
         else:
-            return Response({
-                "success": False,
-                'code': status.HTTP_404_NOT_FOUND,
-                "error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'message': 'Email not found'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PurchaseProduct(viewsets.ModelViewSet):
@@ -880,6 +865,27 @@ class PurchaseProduct(viewsets.ModelViewSet):
                 'code': status.HTTP_404_NOT_FOUND,
                 "message": "user does not exists."
             }, status=status.HTTP_404_NOT_FOUND)
+
+
+class ForgotResetPassword(viewsets.ModelViewSet):
+    def change_password(self, request):
+        if request.GET['pk']:
+            token1 = request.GET['pk']
+            user = UserProfile.objects.filter(forgot_password=token1).first()
+            if user:
+                user.user.set_password(request.data["new_password"])
+                user.user.save()
+                return Response({'success': True, 'code': status.HTTP_200_OK}, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "success": False,
+                    'code': status.HTTP_404_NOT_FOUND,
+                    "error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({
+                "success": False,
+                'code': status.HTTP_404_NOT_FOUND,
+                "error": "Token not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class GoogleSignViewSet(viewsets.ModelViewSet):

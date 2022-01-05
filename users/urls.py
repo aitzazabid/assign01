@@ -78,6 +78,9 @@ urlpatterns = [
     path('forgot-password/', views.ForgotPassword.as_view({
         "post": "get_email"
     }), name="forgot_password"),
+    path('resetpassword/', views.ForgotResetPassword.as_view({
+        "post": "change_password"
+    }), name="forgot_password"),
     path('purchase_prod/', views.PurchaseProduct.as_view({
         "post": "purchase_product"
     }), name="purchase-product"),
