@@ -6,6 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 def ProfileImages(instance, filename):
     return '/'.join(['ProfileImage', str(instance.id), filename])
 
+
 def ProductImages(instance, filename):
     return '/'.join(['ProductImages', str(instance.id), filename])
 
@@ -99,6 +100,21 @@ class Company(models.Model):
     number_of_employees = models.IntegerField(default=0, null=True, blank=True)
 
 
+class CompanyCatgeory(models.Model):
+    COMPANY_CHOICES = (
+        ('RETAILER', 'Retailer'),
+        ('HEALTH PRACTITIONER', 'Health Practitioner'),
+        ('FOOD SERVICE', 'Food Service'),
+        ('SUPPLIER/RAW INGREDIENT DISTRIBUTOR', 'Supplier/Raw Ingredient Distributor'),
+        ('MANUFACTURER', 'Manufacturer'),
+        ('BUSINESS SERVICES', 'Business Services'),
+        ('INVESTOR', 'Investor'),
+    )
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='company')
+    company_category = models.CharField(default="", max_length=256, choices=COMPANY_CHOICES)
+
+
 class Products(models.Model):
     ROLE_CHOICES = (
         ('AVAILABLE', 'available'),
@@ -111,6 +127,21 @@ class Products(models.Model):
     description = models.CharField(max_length=256, null=True, blank=True)
     status = models.CharField(default="", max_length=256, choices=ROLE_CHOICES)
     product_image = models.ImageField(upload_to=ProductImages, max_length=254, blank=True, null=True)
+
+
+class ProductCategory(models.Model):
+    PRODUCT_CHOICES = (
+        ('ELECTRONICS', 'electronics'),
+        ('MEDICAL/HEALTH', 'medical/health'),
+        ('APPLIANCES ', 'appliances'),
+        ('BEAUTY & PERSONAL CARE', 'beauty & personal Care'),
+        ('GROCERY', 'grocery'),
+        ('HOME & KITCHEN', 'home & kitchen'),
+        ('CLOTHING', 'clothing'),
+    )
+
+    product = models.ForeignKey(Products, on_delete=models.CASCADE, related_name='product')
+    product_category = models.CharField(default="", max_length=256, choices=PRODUCT_CHOICES)
 
 
 class Orders(models.Model):

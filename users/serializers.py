@@ -1,4 +1,5 @@
-from users.models import UserProfile, User, Records, Company, Products, RoleModel, Orders
+from users.models import UserProfile, User, Records, Company, Products, RoleModel, Orders, ProductCategory, \
+    CompanyCatgeory
 from rest_framework import serializers
 
 
@@ -30,9 +31,21 @@ class CompanySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class CompanyCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyCatgeory
+        fields = "__all__"
+
+
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Products
+        fields = "__all__"
+
+
+class ProductCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductCategory
         fields = "__all__"
 
 

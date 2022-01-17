@@ -1,7 +1,7 @@
-from users.models import UserProfile, Records, Company, Products, RoleModel, Orders
+from users.models import UserProfile, Records, Company, Products, RoleModel, Orders, CompanyCatgeory, ProductCategory
 from users.serializers import ProfileSerializer, UserSerializer, \
     RecordSerializer, ProductSerializer, CompanySerializer, RoleSerializer, ResetPasswordSerializer, \
-    SearchProfileSerializer, OrderSerializer
+    SearchProfileSerializer, OrderSerializer, ProductCategorySerializer, CompanyCategorySerializer
 from rest_framework.response import Response
 from django.template.loader import render_to_string
 from users.models import User
@@ -15,7 +15,7 @@ from random import randint
 from django.conf import settings
 from django.core.mail import send_mail
 from users import constants
-from assign01.settings import DEFAULT_FROM_EMAIL
+from assign01.settings import EMAIL_HOST_USER
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from django.core.mail import EmailMultiAlternatives
 from datetime import timedelta
@@ -33,6 +33,13 @@ class SignUpView(viewsets.ModelViewSet):
         user_data = request.data
         user_data["username"] = request.data["my_email"]
         user_data["email"] = request.data["my_email"]
+        check_user = User.objects.filter(email=user_data["email"])
+        if check_user:
+            return Response({
+                "success": False,
+                'code': status.HTTP_406_NOT_ACCEPTABLE,
+                "message": 'User with this email alrady exists.'}, status=status.HTTP_406_NOT_ACCEPTABLE
+            )
         user = UserSerializer(data=user_data)
         if user.is_valid():
             user = user.save()
@@ -350,12 +357,31 @@ class AddCompany(viewsets.ModelViewSet):
                     'code': status.HTTP_406_NOT_ACCEPTABLE,
                     "message": "Please enter identity."}, status=status.HTTP_406_NOT_ACCEPTABLE
                 )
+            data2 = {}
+            if data.get('company_category') is None:
+                return Response({
+                    'message': 'Missed company category.',
+                    'success': False
+                }, status=status.HTTP_406_NOT_ACCEPTABLE)
+            data2['company_category'] = data['company_category']
+            invalid = {"company_category"}
+            data = without_keys(data, invalid)
             serializer = CompanySerializer(data=data)
             save_company_name = UserProfile.objects.filter(user=user_id).first()
             save_company_name.company = data['company_name']
             save_company_name.save()
             if serializer.is_valid():
                 serializer.save()
+                data2['company'] = serializer['id'].value
+                check_company_category = CompanyCategorySerializer(data=data2)
+                if check_company_category.is_valid():
+                    check_company_category.save()
+                else:
+                    Company.objects.filter(id=serializer['id'].value).delete()
+                    return Response({
+                        'message': 'You entered wrong company category.',
+                        'success': False
+                    }, status=status.HTTP_406_NOT_ACCEPTABLE)
                 data1 = {}
                 data1["user"] = user_id
                 data1["company"] = serializer.data['id']
@@ -369,7 +395,9 @@ class AddCompany(viewsets.ModelViewSet):
                         'code': status.HTTP_406_NOT_ACCEPTABLE,
                         "error": Roleserializer1._errors}, status=status.HTTP_406_NOT_ACCEPTABLE
                     )
-                return Response(serializer.data)
+                response = serializer.data
+                response['Company_category'] = data2['company_category']
+                return Response(response)
             else:
                 return Response({
                     "success": False,
@@ -498,6 +526,8 @@ class AddCompany(viewsets.ModelViewSet):
         check_company = RoleModel.objects.filter(user=user_id).filter(company=company_id).first()
         if check_company:
             if check_company.identity == 'ADMIN':
+                Company.objects.filter(id=company_id).delete()
+                CompanyCatgeory.objects.filter(company=company_id).delete()
                 check_company.delete()
                 return Response({
                     'success': False,
@@ -526,10 +556,35 @@ class AddProducts(viewsets.ModelViewSet):
             if is_company:
                 data = request.data
                 data['company'] = company_id
+                data2 = {}
+                if data.get('product_category') is None:
+                    return Response({
+                        'message': 'Missed product category.',
+                        'success': False
+                    }, status=status.HTTP_406_NOT_ACCEPTABLE)
+                data2['product_category'] = data['product_category']
+                invalid = {"product_category"}
+
+                def without_keys(d, keys):
+                    return {x: d[x] for x in d if x not in keys}
+
+                data = without_keys(request.data, invalid)
                 serializer = ProductSerializer(data=data)
                 if serializer.is_valid():
                     serializer.save()
-                    return Response(serializer.data)
+                    data2['product'] = serializer['id'].value
+                    check_category = ProductCategorySerializer(data=data2)
+                    if check_category.is_valid():
+                        check_category.save()
+                    else:
+                        Products.objects.filter(id=serializer['id'].value).delete()
+                        return Response({
+                            'message': 'You entered wrong product category.',
+                            'success': False
+                        }, status=status.HTTP_406_NOT_ACCEPTABLE)
+                    response = serializer.data
+                    response['Company_category'] = data2['product_category']
+                    return Response(response)
                 else:
                     return Response({
                         "success": False,
@@ -636,6 +691,7 @@ class AddProducts(viewsets.ModelViewSet):
         if check_user_company:
             check_product = Products.objects.filter(company=company_id).filter(id=request.GET['prod_id']).first()
             if check_product:
+                ProductCategory.objects.filter(product=request.GET['prod_id']).delete()
                 check_product.delete()
                 return Response({'success': True, 'message': 'Product deleted.'}, status=status.HTTP_200_OK)
             else:
@@ -771,7 +827,7 @@ class ForgotPassword(viewsets.ModelViewSet):
                     subject = 'Forgot password'
                     html_content = render_to_string(template_name='forgot_password.html', context=ctx)
                     text_content = render_to_string(template_name='forgot_password.html', context=ctx)
-                    msg = EmailMultiAlternatives(subject, text_content, DEFAULT_FROM_EMAIL, [email])
+                    msg = EmailMultiAlternatives(subject, text_content, EMAIL_HOST_USER, [email])
                     msg.attach_alternative(html_content, "text/html")
                     msg.mixed_subtype = 'related'
                     msg.send()
@@ -993,7 +1049,7 @@ class OrderView(viewsets.ModelViewSet):
                             recipient_list = [email, ]
                             subject = 'Thank you for order'
                             message = 'Your order is confirm.'
-                            send_mail(subject, message, DEFAULT_FROM_EMAIL, [email])
+                            send_mail(subject, message, EMAIL_HOST_USER, [email])
                             # html_content = render_to_string(template_name='forgot_password.html', context=message)
                             # text_content = render_to_string(template_name='forgot_password.html', context=message)
                             # msg = EmailMultiAlternatives(subject, text_content, DEFAULT_FROM_EMAIL, [email])
@@ -1055,7 +1111,7 @@ class OrderView(viewsets.ModelViewSet):
                                 }
                                 html_content = render_to_string(template_name='confirm_order.html', context=ctx)
                                 text_content = render_to_string(template_name='confirm_order.html', context=ctx)
-                                msg = EmailMultiAlternatives(subject, text_content, DEFAULT_FROM_EMAIL, [email])
+                                msg = EmailMultiAlternatives(subject, text_content, EMAIL_HOST_USER, [email])
                                 msg.attach_alternative(html_content, "text/html")
                                 msg.mixed_subtype = 'related'
                                 msg.send()
@@ -1068,7 +1124,7 @@ class OrderView(viewsets.ModelViewSet):
                                 recipient_list = [email, ]
                                 subject = 'Not Confirm product'
                                 message = 'Your order cannot confirm. Product is not available.'
-                                send_mail(subject, message, DEFAULT_FROM_EMAIL, recipient_list)
+                                send_mail(subject, message, EMAIL_HOST_USER, recipient_list)
                                 return Response({
                                     'code': status.HTTP_404_NOT_FOUND
                                 }, status=status.HTTP_404_NOT_FOUND)
@@ -1125,7 +1181,7 @@ class ContactUsCardView(viewsets.ModelViewSet):
         else:
             message1 = "Name: " + str(name) + " /n Message: " + message + " /n Sender Email: " + str(user_email)
         recipient_list = ['info@rfxme.com']
-        if send_mail(user_email, message1, DEFAULT_FROM_EMAIL, recipient_list):
+        if send_mail(user_email, message1, EMAIL_HOST_USER, recipient_list):
             return Response({
                 "success": True,
                 "message": "Mail send."
@@ -1155,7 +1211,7 @@ class VerifyAccountView(viewsets.ModelViewSet):
                 subject = 'Verify your account'
                 html_content = render_to_string(template_name='send_account_verification_email.html', context=ctx)
                 text_content = render_to_string(template_name='send_account_verification_email.html', context=ctx)
-                msg = EmailMultiAlternatives(subject, text_content, DEFAULT_FROM_EMAIL, [email])
+                msg = EmailMultiAlternatives(subject, text_content, EMAIL_HOST_USER, [email])
                 msg.attach_alternative(html_content, "text/html")
                 msg.mixed_subtype = 'related'
                 msg.send()

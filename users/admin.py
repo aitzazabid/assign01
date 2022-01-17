@@ -3,7 +3,8 @@ from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.utils.translation import ugettext_lazy as _
 
 from .models import User
-from users.models import UserProfile, Records, RoleModel, Company, Products, Orders
+from users.models import UserProfile, Records, RoleModel, Company, Products, Orders, ProductCategory, \
+    CompanyCatgeory
 
 
 # Register your models here.
@@ -42,3 +43,17 @@ class OrderAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Orders, OrderAdmin)
+
+
+class CompanyCategoryAdmin(admin.ModelAdmin):
+    list_display = ["company", "company_category"]
+
+
+admin.site.register(CompanyCatgeory, CompanyCategoryAdmin)
+
+
+class ProductCategoryAdmin(admin.ModelAdmin):
+    list_display = ["product", "product_category"]
+
+
+admin.site.register(ProductCategory, ProductCategoryAdmin)
