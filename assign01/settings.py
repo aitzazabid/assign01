@@ -96,13 +96,23 @@ CORS_ALLOWED_ORIGINS = [
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'assign01',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -122,12 +132,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
+EMAIL_HOST_USER = 'usmansaddiqi0524@gmail.com'
+EMAIL_HOST_PASSWORD = 'Pakistan00'
 
 
 # Internationalization
@@ -190,14 +200,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #
 # DEFAULT_FROM_EMAIL = 'RFX ME <info@rfxme.com>'
 
-DEFAULT_FROM_EMAIL = 'Flicken <development@flicken.io>'
-SENDGRID_SANDBOX_MODE_IN_DEBUG = True
-SENDGRID_ECHO_TO_STDOUT = True
-# EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+# DEFAULT_FROM_EMAIL = 'Flicken <development@flicken.io>'
+# SENDGRID_SANDBOX_MODE_IN_DEBUG = True
+# SENDGRID_ECHO_TO_STDOUT = True
+# # EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+# # SENDGRID_API_KEY = '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'
+# EMAIL_BACKEND = "sgbackend.SendGridBackend"
+# # SENDGRID_API_KEY = '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'
 # SENDGRID_API_KEY = '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'
-EMAIL_BACKEND = "sgbackend.SendGridBackend"
-# SENDGRID_API_KEY = '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'
-SENDGRID_API_KEY = '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'
 
 # SOCIALACCOUNT_PROVIDERS = {
 #     'google': {

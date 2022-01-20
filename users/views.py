@@ -20,6 +20,7 @@ from rest_framework.authentication import SessionAuthentication, BasicAuthentica
 from django.core.mail import EmailMultiAlternatives
 from datetime import timedelta
 from django.utils import timezone
+from rest_fuzzysearch import search, sort
 
 
 # Create your views here.
@@ -1046,16 +1047,18 @@ class OrderView(viewsets.ModelViewSet):
                         if serializer.is_valid():
                             serializer.save()
                             email = request.data["email"]
-                            recipient_list = [email, ]
                             subject = 'Thank you for order'
-                            message = 'Your order is confirm.'
-                            send_mail(subject, message, EMAIL_HOST_USER, [email])
-                            # html_content = render_to_string(template_name='forgot_password.html', context=message)
-                            # text_content = render_to_string(template_name='forgot_password.html', context=message)
-                            # msg = EmailMultiAlternatives(subject, text_content, DEFAULT_FROM_EMAIL, [email])
-                            # msg.attach_alternative(html_content, "text/html")
-                            # msg.mixed_subtype = 'related'
-                            # msg.send()
+                            ctx = {
+                                'price': check_prod_status.price,
+                                'total_price': check_prod_status.price + 200 + 50,
+                                'product_price': check_prod_status.price
+                            }
+                            html_content = render_to_string(template_name='placing_order.html', context=ctx)
+                            text_content = render_to_string(template_name='placing_order.html', context=ctx)
+                            msg = EmailMultiAlternatives(subject, text_content, EMAIL_HOST_USER, [email])
+                            msg.attach_alternative(html_content, "text/html")
+                            msg.mixed_subtype = 'related'
+                            msg.send()
                             return Response({
                                 'success': True,
                                 'message': 'We will confirm your order shortly.'
@@ -1246,3 +1249,16 @@ class VerifyAccountView(viewsets.ModelViewSet):
                 "success": False,
                 'code': status.HTTP_404_NOT_FOUND,
                 "error": "Id or email not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class FuzzySearchView(sort.SortedModelMixin, search.SearchableModelMixin, viewsets.ReadOnlyModelViewSet):
+    lookup_fields = ('company', 'country')
+    lookup_value_regex = '[^/]+'
+    queryset = UserProfile.objects.all()
+    serializer_class = ProfileSerializer
+
+    filter_backends = (search.RankedFuzzySearchFilter, sort.OrderingFilter)
+    search_fields = ('company', 'country')
+    ordering = ('-rank',)
+
+    min_rank = 0.1

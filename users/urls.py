@@ -13,6 +13,8 @@ router.register(r'get_all_companies', views.ShowAllCompanies)
 router.register(r'get_all_products/', views.ShowAllProducts)
 router.register(r'search', views.SearchByCompanyView)
 router.register(r'google_login', views.GoogleSignViewSet)
+router.register(r'fuzzysearch', views.FuzzySearchView)
+
 
 urlpatterns = router.urls
 
